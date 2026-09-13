@@ -1,10 +1,4 @@
 # PhotoSphere — Collaborative Photo Sharing Platform
-
-> **TrizenAI Full-Stack Internship Challenge Submission**  
-> **Candidate:** Solo Submission  
-> **Deadline:** September 20, 2026 — 11:59 PM IST  
-> **Contact:** talent@trizen-ai.com  
-
 ---
 
 ## 1. Project Overview
