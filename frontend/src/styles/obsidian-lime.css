@@ -1,0 +1,266 @@
+/* Obsidian & Lime Futuristic Glassmorphism Design System */
+
+:root {
+  --obsidian-base: #000000;
+  --obsidian-surface: #0c0c0c;
+  --obsidian-surface-card: rgba(255, 255, 255, 0.03);
+  
+  --lime-neon: #ccff00;
+  --emerald-glow: #10b981;
+  
+  --text-white-primary: #ebebeb;
+  --text-white-secondary: rgba(235, 235, 235, 0.6);
+  --text-white-muted: rgba(235, 235, 235, 0.3);
+  
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'Space Grotesk', sans-serif;
+}
+
+.obsidian-login-viewport {
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--obsidian-base);
+  color: var(--text-white-primary);
+  font-family: var(--font-body);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* 60x60 Grid Background */
+.obsidian-grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 85%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 85%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Noise Texture Overlay */
+.obsidian-noise-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 0);
+  background-size: 4px 4px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Glow-Spheres Radial Gradients with 120px blur */
+.obsidian-glow-sphere-1 {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  top: -120px;
+  left: 20%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(204, 255, 0, 0.35) 0%, rgba(204, 255, 0, 0.1) 45%, transparent 70%);
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+  animation: glowPulse 8s ease-in-out infinite alternate;
+}
+
+.obsidian-glow-sphere-2 {
+  position: absolute;
+  width: 580px;
+  height: 580px;
+  bottom: -150px;
+  right: 15%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.3) 0%, rgba(16, 185, 129, 0.08) 50%, transparent 70%);
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+  animation: glowPulse2 10s ease-in-out infinite alternate;
+}
+
+@keyframes glowPulse {
+  0% { transform: scale(1) translate(0, 0); opacity: 0.7; }
+  100% { transform: scale(1.15) translate(30px, 20px); opacity: 1; }
+}
+
+@keyframes glowPulse2 {
+  0% { transform: scale(1) translate(0, 0); opacity: 0.6; }
+  100% { transform: scale(1.1) translate(-25px, -30px); opacity: 0.9; }
+}
+
+/* Floating Shell / Glass Card */
+.obsidian-floating-card {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 460px;
+  background: var(--obsidian-surface-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2.5rem;
+  padding: 44px 38px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px -10px rgba(204, 255, 0, 0.12);
+  box-sizing: border-box;
+  animation: floatCard 6s infinite ease-in-out;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.obsidian-floating-card:hover {
+  border-color: rgba(204, 255, 0, 0.3);
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.95), 0 0 50px -10px rgba(204, 255, 0, 0.2);
+}
+
+@keyframes floatCard {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* System Status Tag (JetBrains Mono) */
+.obsidian-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--lime-neon);
+  background: rgba(204, 255, 0, 0.08);
+  border: 1px solid rgba(204, 255, 0, 0.2);
+  padding: 5px 12px;
+  border-radius: 9999px;
+  margin-bottom: 20px;
+}
+
+.obsidian-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--lime-neon);
+  box-shadow: 0 0 10px var(--lime-neon);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.5; }
+}
+
+/* Form Fields */
+.obsidian-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.obsidian-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-white-secondary);
+}
+
+.obsidian-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 50px;
+  padding: 0 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.obsidian-field:focus-within {
+  border-color: var(--lime-neon);
+  background: rgba(204, 255, 0, 0.03);
+  box-shadow: 0 0 24px rgba(204, 255, 0, 0.22);
+}
+
+.obsidian-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-white-primary);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+
+.obsidian-input::placeholder {
+  color: var(--text-white-muted);
+}
+
+/* Neon Pulse Submit Button */
+.obsidian-neon-btn {
+  width: 100%;
+  height: 52px;
+  border-radius: 9999px;
+  background-color: var(--lime-neon);
+  color: #000000;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 0 30px rgba(204, 255, 0, 0.35);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 10px;
+}
+
+.obsidian-neon-btn:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 0 45px rgba(204, 255, 0, 0.55);
+}
+
+.obsidian-neon-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.obsidian-neon-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Evaluator Shortcut Buttons */
+.obsidian-shortcut-btn {
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-white-primary);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.obsidian-shortcut-btn:hover {
+  border-color: rgba(204, 255, 0, 0.4);
+  background: rgba(204, 255, 0, 0.05);
+  color: var(--lime-neon);
+  transform: translateY(-1px);
+}
