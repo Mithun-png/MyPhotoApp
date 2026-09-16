@@ -87,6 +87,7 @@
   "event_id": "event-uuid",
   "uploaded_by": "user-uuid",
   "filename": "Ceremony Entrance.jpg",
+  "storage_location": "https://res.cloudinary.com/.../image.jpg",
   "cloudinary_url": "https://res.cloudinary.com/.../image.jpg",
   "cloudinary_public_id": "photosharing/events/.../unique_id",
   "file_size": 2450000,

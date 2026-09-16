@@ -168,6 +168,7 @@ async def verify_gallery_pin(
             event_id=p["event_id"],
             uploaded_by=p["uploaded_by"],
             filename=p["filename"],
+            storage_location=p.get("storage_location", p.get("cloudinary_url")),
             cloudinary_url=p["cloudinary_url"],
             cloudinary_public_id=p["cloudinary_public_id"],
             file_size=p["file_size"],

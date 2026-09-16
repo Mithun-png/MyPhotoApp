@@ -11,6 +11,7 @@ class PhotoResponse(BaseModel):
     uploaded_by: str
     uploader_name: Optional[str] = None
     filename: str
+    storage_location: Optional[str] = None
     cloudinary_url: str
     cloudinary_public_id: str
     file_size: int

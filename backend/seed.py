@@ -82,6 +82,7 @@ async def seed():
             "event_id": event_id,
             "uploaded_by": team_id,
             "filename": filename,
+            "storage_location": url,
             "cloudinary_url": url,
             "cloudinary_public_id": f"sample/{pid}",
             "file_size": size,
