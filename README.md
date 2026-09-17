@@ -204,14 +204,16 @@ cd backend
 python -m pytest tests/ -v
 ```
 
-### Test Coverage Highlights:
+### Test Coverage Highlights (10 Passed):
 - `test_register_and_login`: User registration, first-admin bootstrap, and JWT issuance.
 - `test_login_invalid_credentials`: 401 handling on wrong password.
 - `test_get_me`: Protected route verification.
+- `test_login_without_api_prefix`: Route resilience verifying both `/api/auth/login` and `/auth/login` work seamlessly.
 - `test_admin_create_event`: Admin event creation.
 - `test_team_member_cannot_create_event`: 403 Forbidden enforcement on non-admin event creation.
 - `test_event_isolation_for_team_member`: Multi-tenant isolation ensuring photographers cannot view or upload to unassigned events.
 - `test_batch_photo_upload_and_selection`: Multi-photo file upload, individual status reporting, single and bulk photo selection.
+- `test_photo_rename`: Filename modification with ownership & admin authorization checks.
 - `test_gallery_workflow_and_pin_protection`: End-to-end gallery publishing, PIN bcrypt verification, leak-free metadata route, and brute-force attempt lockout.
 
 ---
@@ -226,17 +228,22 @@ python -m pytest tests/ -v
 | **Brute-force PIN guessing** | `PinRateLimiter` tracks consecutive failures per slug and locks out attempts for 15 minutes after 5 failed attempts (`429 Too Many Requests`). |
 | **Unpublished photos leakage** | Public metadata route (`GET /api/gallery/:slug`) returns zero photo URLs. Photos are only returned after successful PIN verification. |
 | **PIN leakage in URLs/logs** | PIN verification is transmitted via POST request body (`POST /api/gallery/:slug/verify-pin`) rather than query parameters. |
+| **Atlas SSL Handshake on Cloud** | Automatically passes `certifi.where()` as `tlsCAFile` and sets `serverSelectionTimeoutMS=10000` to ensure smooth replica set discovery. |
 
 ---
 
 ## 10. Deployment Steps
 
-### Backend Deployment (Render / Railway)
+### Backend Deployment (Render)
 1. Push repository to GitHub.
 2. Create a new Web Service on Render pointing to `backend/`.
 3. Set Build Command: `pip install -r requirements.txt`
 4. Set Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-5. Configure Environment Variables (`MONGODB_URI`, `JWT_SECRET`, `CLOUDINARY_*`).
+5. Configure Environment Variables:
+   - `MONGODB_URI`: MongoDB Atlas connection string (`mongodb+srv://...`)
+   - `JWT_SECRET`: Random secure string
+   - `CLOUDINARY_*`: Cloudinary cloud name, API key, and secret
+   - `CORS_ORIGINS`: Allowed origins (e.g. `["*"]` or your Vercel URL)
 
 ### Frontend Deployment (Vercel)
 1. Import repository on Vercel pointing to the `frontend/` root directory.
@@ -250,3 +257,18 @@ python -m pytest tests/ -v
 
 - **Object Storage:** Built-in resilient fallback converts files to structured data URIs when Cloudinary credentials are in placeholder mode, enabling full local testing without cloud account setup.
 - **Bonus Capabilities Available for Extension:** Image watermarking, client-side EXIF metadata parsing, and ZIP archive batch download for customers.
+
+---
+
+## 12. Final Deliverables & Submission Checklist
+
+| Deliverable | Details |
+|---|---|
+| **Source Code** | [GitHub Repository](https://github.com/Mithun-png/MyPhotoApp) |
+| **Admin Credentials** | `admin@trizen.ai` / `Admin@12345` |
+| **Team Member Credentials** | `photographer@trizen.ai` / `Team@12345` |
+| **Demo Gallery URL** | `/gallery/abc123` |
+| **Demo Access PIN** | `482917` (Non-expiring) |
+| **Automated Tests** | 10 passed (`pytest tests/ -v`) |
+| **Submission Email** | `talent@trizen-ai.com` |
+
