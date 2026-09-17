@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { UploadCloud, CheckCircle2, AlertCircle, X, Image as ImageIcon, Loader2, Pencil, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { UploadCloud, CheckCircle2, AlertCircle, X, Image as ImageIcon, Loader2, Pencil, Check, Plus, Trash2 } from 'lucide-react';
 import { api } from '../api/client';
 
 export function UploadDropzone({ eventId, onUploadSuccess }) {
@@ -8,22 +8,50 @@ export function UploadDropzone({ eventId, onUploadSuccess }) {
   const [uploading, setUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editNameValue, setEditNameValue] = useState('');
+  
   const fileInputRef = useRef(null);
+  const dragCounterRef = useRef(0);
 
-  const handleDrag = (e) => {
+  // Clean up object URLs on unmount to prevent browser memory leaks
+  useEffect(() => {
+    return () => {
+      selectedFiles.forEach(item => {
+        if (item.preview) URL.revokeObjectURL(item.preview);
+      });
+    };
+  }, []);
+
+  const handleDragEnter = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
+    dragCounterRef.current += 1;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
       setDragActive(true);
-    } else if (e.type === 'dragleave') {
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
       setDragActive(false);
     }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
+    dragCounterRef.current = 0;
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       addFiles(Array.from(e.dataTransfer.files));
     }
@@ -33,30 +61,36 @@ export function UploadDropzone({ eventId, onUploadSuccess }) {
     if (e.target.files && e.target.files.length > 0) {
       addFiles(Array.from(e.target.files));
     }
+    // Reset file input so selecting the same file again triggers change
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
-
-  const [editingId, setEditingId] = useState(null);
-  const [editNameValue, setEditNameValue] = useState('');
 
   const addFiles = (files) => {
     setErrorMessage('');
     setUploadResults(null);
     const validImages = files.filter(f => f.type.startsWith('image/'));
     if (validImages.length < files.length) {
-      setErrorMessage('Some files were ignored because only image files (JPEG, PNG, WebP) are supported.');
+      setErrorMessage('Some files were skipped: Only image formats (JPEG, PNG, WebP, AVIF) are supported.');
     }
-    
-    // Append to existing queue with unique ID and mutable name
+
     const newItems = validImages.map(f => ({
       id: `${f.name}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       file: f,
-      name: f.name
+      name: f.name,
+      preview: URL.createObjectURL(f)
     }));
+
     setSelectedFiles(prev => [...prev, ...newItems]);
   };
 
   const removeFile = (id) => {
-    setSelectedFiles(prev => prev.filter(item => item.id !== id));
+    setSelectedFiles(prev => {
+      const target = prev.find(item => item.id === id);
+      if (target?.preview) {
+        URL.revokeObjectURL(target.preview);
+      }
+      return prev.filter(item => item.id !== id);
+    });
     if (editingId === id) {
       setEditingId(null);
     }
@@ -80,6 +114,9 @@ export function UploadDropzone({ eventId, onUploadSuccess }) {
   };
 
   const clearQueue = () => {
+    selectedFiles.forEach(item => {
+      if (item.preview) URL.revokeObjectURL(item.preview);
+    });
     setSelectedFiles([]);
     setEditingId(null);
     setUploadResults(null);
@@ -88,7 +125,7 @@ export function UploadDropzone({ eventId, onUploadSuccess }) {
   };
 
   const handleUpload = async () => {
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0 || uploading) return;
     setUploading(true);
     setErrorMessage('');
     setUploadResults(null);
@@ -99,8 +136,11 @@ export function UploadDropzone({ eventId, onUploadSuccess }) {
       if (res.successful > 0 && onUploadSuccess) {
         onUploadSuccess();
       }
-      // If all succeeded, clear queue
+      // If all succeeded, clear queue and previews
       if (res.failed === 0) {
+        selectedFiles.forEach(item => {
+          if (item.preview) URL.revokeObjectURL(item.preview);
+        });
         setSelectedFiles([]);
       }
     } catch (err) {
@@ -111,68 +151,60 @@ export function UploadDropzone({ eventId, onUploadSuccess }) {
   };
 
   const formatSize = (bytes) => {
+    if (!bytes) return '0 KB';
     const kb = bytes / 1024;
     return kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.round(kb)} KB`;
   };
 
+  const totalPayloadBytes = selectedFiles.reduce((acc, curr) => acc + (curr.file?.size || 0), 0);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Drag & Drop Area */}
-      <div
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        style={{
-          border: `2px dashed ${dragActive ? 'var(--lime-neon)' : 'rgba(255, 255, 255, 0.15)'}`,
-          borderRadius: 'var(--radius-lg)',
-          padding: '48px 24px',
-          textAlign: 'center',
-          backgroundColor: dragActive ? 'rgba(204, 255, 0, 0.08)' : 'rgba(12, 12, 12, 0.6)',
-          cursor: 'pointer',
-          transition: 'all 0.25s ease',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '14px'
-        }}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleFileInput}
-          style={{ display: 'none' }}
-        />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={handleFileInput}
+        style={{ display: 'none' }}
+      />
 
+      {/* Upload Results Banner */}
+      {uploadResults && (
         <div style={{
-          width: '56px',
-          height: '56px',
-          borderRadius: '16px',
-          background: 'rgba(204, 255, 0, 0.12)',
+          padding: '14px 18px',
+          borderRadius: 'var(--radius-md)',
+          background: uploadResults.failed === 0 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+          border: `1px solid ${uploadResults.failed === 0 ? 'rgba(16, 185, 129, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--lime-neon)',
-          boxShadow: '0 0 16px rgba(204, 255, 0, 0.2)'
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px'
         }}>
-          <UploadCloud size={30} />
-        </div>
-
-        <div>
-          <div style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-            Drag & drop multiple event photos here
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {uploadResults.failed === 0 ? (
+              <CheckCircle2 size={20} color="#34d399" style={{ flexShrink: 0 }} />
+            ) : (
+              <AlertCircle size={20} color="#fbbf24" style={{ flexShrink: 0 }} />
+            )}
+            <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+              Upload Completed: <strong>{uploadResults.successful}</strong> photo{uploadResults.successful === 1 ? '' : 's'} added
+              {uploadResults.failed > 0 && `, ${uploadResults.failed} failed`}.
+            </span>
           </div>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-            or click to browse your files (JPEG, PNG, WebP)
-          </div>
+          <button 
+            type="button" 
+            onClick={() => setUploadResults(null)} 
+            className="btn btn-secondary btn-sm"
+          >
+            Dismiss
+          </button>
         </div>
-      </div>
+      )}
 
-      {/* Error alert */}
+      {/* Error Alert */}
       {errorMessage && (
         <div style={{
           display: 'flex',
@@ -180,68 +212,108 @@ export function UploadDropzone({ eventId, onUploadSuccess }) {
           gap: '10px',
           padding: '12px 16px',
           background: 'rgba(244, 63, 94, 0.15)',
-          border: '1px solid rgba(244, 63, 94, 0.3)',
+          border: '1px solid rgba(244, 63, 94, 0.35)',
           borderRadius: 'var(--radius-md)',
           color: '#fb7185',
           fontSize: '0.875rem'
         }}>
-          <AlertCircle size={16} />
-          <span>{errorMessage}</span>
-        </div>
-      )}
-
-      {/* Upload Results Summary */}
-      {uploadResults && (
-        <div style={{
-          padding: '16px',
-          borderRadius: 'var(--radius-md)',
-          background: uploadResults.failed === 0 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-          border: `1px solid ${uploadResults.failed === 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: '0.9rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {uploadResults.failed === 0 ? (
-              <CheckCircle2 size={20} color="#34d399" />
-            ) : (
-              <AlertCircle size={20} color="#fbbf24" />
-            )}
-            <span>
-              Upload Complete: <strong>{uploadResults.successful}</strong> succeeded
-              {uploadResults.failed > 0 && `, ${uploadResults.failed} failed`}.
-            </span>
-          </div>
-          <button onClick={clearQueue} className="btn btn-secondary btn-sm">
-            Done
+          <AlertCircle size={16} style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1 }}>{errorMessage}</span>
+          <button 
+            type="button" 
+            onClick={() => setErrorMessage('')}
+            style={{ background: 'transparent', border: 'none', color: '#fb7185', cursor: 'pointer', display: 'flex' }}
+          >
+            <X size={14} />
           </button>
         </div>
       )}
 
+      {/* Drag & Drop Area */}
+      <div
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        onClick={() => !uploading && fileInputRef.current?.click()}
+        style={{
+          border: `2px dashed ${dragActive ? 'var(--lime-neon)' : 'rgba(255, 255, 255, 0.18)'}`,
+          borderRadius: 'var(--radius-md)',
+          padding: selectedFiles.length > 0 ? '20px 16px' : '36px 20px',
+          textAlign: 'center',
+          backgroundColor: dragActive ? 'rgba(204, 255, 0, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+          cursor: uploading ? 'not-allowed' : 'pointer',
+          transition: 'all 0.2s ease',
+          display: 'flex',
+          flexDirection: selectedFiles.length > 0 ? 'row' : 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: selectedFiles.length > 0 ? '14px' : '12px',
+          boxShadow: dragActive ? '0 0 25px rgba(204, 255, 0, 0.2)' : 'none',
+          WebkitUserSelect: 'none',
+          userSelect: 'none'
+        }}
+      >
+        <div style={{
+          width: selectedFiles.length > 0 ? '40px' : '52px',
+          height: selectedFiles.length > 0 ? '40px' : '52px',
+          borderRadius: '12px',
+          background: 'rgba(204, 255, 0, 0.12)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--lime-neon)',
+          flexShrink: 0
+        }}>
+          {selectedFiles.length > 0 ? <Plus size={20} /> : <UploadCloud size={28} />}
+        </div>
+
+        <div>
+          <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+            {selectedFiles.length > 0 
+              ? 'Click or drop more files to add to upload queue' 
+              : 'Drag & drop high-resolution photographs here'}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            Supports JPG, PNG, WebP • Click anywhere to browse files
+          </div>
+        </div>
+      </div>
+
       {/* Staged Files Queue */}
       {selectedFiles.length > 0 && (
-        <div className="glass-panel" style={{ padding: '20px' }}>
+        <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Queue Header & Actions Bar */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '14px',
-            paddingBottom: '10px',
+            flexWrap: 'wrap',
+            gap: '10px',
+            paddingBottom: '12px',
             borderBottom: '1px solid var(--border-subtle)'
           }}>
-            <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>
-              Staged for Upload ({selectedFiles.length} {selectedFiles.length === 1 ? 'photo' : 'photos'})
-            </span>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div>
+              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                Queue ({selectedFiles.length})
+              </span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '8px', fontFamily: 'var(--font-mono)' }}>
+                • {formatSize(totalPayloadBytes)}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 type="button"
                 onClick={clearQueue}
                 disabled={uploading}
                 className="btn btn-secondary btn-sm"
+                title="Clear all staged files"
               >
-                Clear All
+                <Trash2 size={13} />
+                Clear
               </button>
+
               <button
                 type="button"
                 onClick={handleUpload}
@@ -250,46 +322,71 @@ export function UploadDropzone({ eventId, onUploadSuccess }) {
               >
                 {uploading ? (
                   <>
-                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
                     Uploading...
                   </>
                 ) : (
                   <>
-                    <UploadCloud size={16} />
-                    Upload {selectedFiles.length} Photos
+                    <UploadCloud size={14} />
+                    Upload All ({selectedFiles.length})
                   </>
                 )}
               </button>
             </div>
           </div>
 
+          {/* Uploading Progress Notification */}
+          {uploading && (
+            <div style={{
+              background: 'rgba(204, 255, 0, 0.08)',
+              border: '1px solid rgba(204, 255, 0, 0.3)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <Loader2 size={18} color="var(--lime-neon)" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                Uploading photos to cloud object storage. Please do not close this window...
+              </div>
+            </div>
+          )}
+
+          {/* Staged File List (Clean Row Architecture) */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-            gap: '12px',
-            maxHeight: '260px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            maxHeight: '290px',
             overflowY: 'auto',
-            padding: '4px'
+            WebkitOverflowScrolling: 'touch',
+            paddingRight: '4px'
           }}>
             {selectedFiles.map((item) => (
               <div
                 key={item.id}
+                className="staged-file-row"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: item.name !== item.file.name ? '1px solid var(--lime-neon)' : '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px'
+                  border: item.name !== item.file.name ? '1px solid rgba(204, 255, 0, 0.4)' : '1px solid var(--border-subtle)'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-                  <ImageIcon size={18} color="var(--lime-neon)" style={{ flexShrink: 0 }} />
-                  
+                {/* Left: Thumbnail & Details */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                  {item.preview ? (
+                    <img 
+                      src={item.preview} 
+                      alt={item.name} 
+                      className="staged-file-thumb"
+                    />
+                  ) : (
+                    <div className="staged-file-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ImageIcon size={20} color="var(--lime-neon)" />
+                    </div>
+                  )}
+
                   {editingId === item.id ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
                       <input
                         type="text"
                         value={editNameValue}
@@ -300,12 +397,13 @@ export function UploadDropzone({ eventId, onUploadSuccess }) {
                         }}
                         autoFocus
                         style={{
-                          width: '100%',
-                          fontSize: '0.78rem',
-                          padding: '3px 6px',
+                          flex: 1,
+                          minWidth: '120px',
+                          fontSize: '0.82rem',
+                          padding: '6px 10px',
                           background: 'rgba(12, 12, 12, 0.95)',
                           border: '1px solid var(--lime-neon)',
-                          borderRadius: '4px',
+                          borderRadius: '6px',
                           color: '#fff',
                           outline: 'none'
                         }}
@@ -313,54 +411,39 @@ export function UploadDropzone({ eventId, onUploadSuccess }) {
                       <button
                         type="button"
                         onClick={() => saveEditing(item.id)}
-                        style={{
-                          background: 'var(--lime-neon)',
-                          border: 'none',
-                          color: '#000',
-                          borderRadius: '4px',
-                          padding: '3px 6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
+                        className="btn btn-primary btn-sm"
+                        style={{ padding: '6px 8px', borderRadius: '6px' }}
                         title="Save name"
                       >
-                        <Check size={12} strokeWidth={3} />
+                        <Check size={13} strokeWidth={3} />
                       </button>
                       <button
                         type="button"
                         onClick={cancelEditing}
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          borderRadius: '4px',
-                          padding: '3px 6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '6px 8px', borderRadius: '6px' }}
                         title="Cancel"
                       >
-                        <X size={12} />
+                        <X size={13} />
                       </button>
                     </div>
                   ) : (
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span
                           title={item.name}
                           style={{
-                            fontSize: '0.8rem',
-                            fontWeight: 500,
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            color: 'var(--text-primary)',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            color: 'var(--text-primary)'
+                            textOverflow: 'ellipsis'
                           }}
                         >
                           {item.name}
                         </span>
+
                         {!uploading && (
                           <button
                             type="button"
@@ -370,41 +453,71 @@ export function UploadDropzone({ eventId, onUploadSuccess }) {
                               border: 'none',
                               color: 'var(--text-muted)',
                               cursor: 'pointer',
-                              padding: '1px',
-                              display: 'flex',
+                              padding: '2px',
+                              display: 'inline-flex',
                               alignItems: 'center',
-                              opacity: 0.8
+                              borderRadius: '4px',
+                              transition: 'color 0.2s'
                             }}
-                            title="Edit image name"
+                            title="Rename image before upload"
+                            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--lime-neon)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
                           >
                             <Pencil size={12} />
                           </button>
                         )}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                         <span style={{ fontFamily: 'var(--font-mono)' }}>{formatSize(item.file.size)}</span>
                         {item.name !== item.file.name && (
-                          <span style={{ color: 'var(--lime-neon)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>renamed</span>
+                          <span style={{
+                            color: 'var(--lime-neon)',
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                            padding: '1px 6px',
+                            background: 'rgba(204, 255, 0, 0.1)',
+                            borderRadius: '4px'
+                          }}>
+                            renamed
+                          </span>
                         )}
                       </div>
                     </div>
                   )}
                 </div>
 
+                {/* Right: Quick Remove */}
                 {!uploading && editingId !== item.id && (
                   <button
+                    type="button"
                     onClick={() => removeFile(item.id)}
                     style={{
                       background: 'transparent',
                       border: 'none',
                       color: 'var(--text-muted)',
                       cursor: 'pointer',
-                      padding: '2px',
-                      display: 'flex'
+                      padding: '6px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0
                     }}
-                    title="Remove file"
+                    title="Remove from queue"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = 'var(--accent-rose)';
+                      e.currentTarget.style.background = 'rgba(244, 63, 94, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'var(--text-muted)';
+                      e.currentTarget.style.background = 'transparent';
+                    }}
                   >
-                    <X size={14} />
+                    <X size={15} />
                   </button>
                 )}
               </div>

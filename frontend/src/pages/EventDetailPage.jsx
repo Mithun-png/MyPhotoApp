@@ -324,7 +324,7 @@ export function EventDetailPage({ eventId, onBack, onNavigateToGallery }) {
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         title={`Upload Photos — ${event.name}`}
-        maxWidth="680px"
+        maxWidth="720px"
       >
         <UploadDropzone
           eventId={eventId}

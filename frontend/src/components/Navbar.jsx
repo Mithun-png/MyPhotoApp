@@ -95,7 +95,7 @@ export function Navbar({ onNavigate, currentPage, onOpenCreateEvent }) {
               paddingLeft: '12px',
               borderLeft: '1px solid var(--border-subtle)'
             }}>
-              <div style={{ textAlign: 'right', display: 'none', md: 'block' }}>
+              <div className="nav-user-info">
                 <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                   {user.name}
                 </div>
