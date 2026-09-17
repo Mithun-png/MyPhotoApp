@@ -99,10 +99,21 @@ async def seed_initial_data(db):
 
 async def connect_to_mongo():
     try:
-        db_instance.client = AsyncIOMotorClient(settings.MONGODB_URI, serverSelectionTimeoutMS=2000)
+        client_kwargs = {
+            "serverSelectionTimeoutMS": 10000
+        }
+        # For Atlas (mongodb+srv or tls/ssl connections), configure trusted CA bundle to prevent handshake errors
+        if "mongodb+srv://" in settings.MONGODB_URI or "ssl=true" in settings.MONGODB_URI.lower() or "tls=true" in settings.MONGODB_URI.lower():
+            try:
+                import certifi
+                client_kwargs["tlsCAFile"] = certifi.where()
+            except ImportError:
+                pass
+
+        db_instance.client = AsyncIOMotorClient(settings.MONGODB_URI, **client_kwargs)
         await db_instance.client.admin.command('ping')
         db_instance.db = db_instance.client[settings.DB_NAME]
-        logger.info(f"Connected to MongoDB at {settings.MONGODB_URI}, database: {settings.DB_NAME}")
+        logger.info(f"Connected to MongoDB database: {settings.DB_NAME}")
         await init_indexes(db_instance.db)
         await seed_initial_data(db_instance.db)
     except Exception as e:
