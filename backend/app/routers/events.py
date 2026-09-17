@@ -5,7 +5,7 @@ from app.models.event import EventCreate, EventResponse, AddMembersRequest
 from app.middleware.auth_middleware import get_current_user, require_admin
 from app.database import get_db
 
-router = APIRouter(prefix="/api/events", tags=["Events"])
+router = APIRouter(prefix="/events", tags=["Events"])
 
 async def enrich_event(event: dict, db) -> EventResponse:
     event_id = event["_id"]

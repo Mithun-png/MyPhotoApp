@@ -37,3 +37,13 @@ async def test_get_me(client, admin_user):
     resp = await client.get("/api/auth/me", headers=headers)
     assert resp.status_code == 200
     assert resp.json()["email"] == "admin@test.com"
+
+@pytest.mark.asyncio
+async def test_login_without_api_prefix(client, admin_user):
+    # Test route flexibility (handles /auth/login without /api)
+    resp = await client.post("/auth/login", json={
+        "email": "admin@test.com",
+        "password": "AdminPass123"
+    })
+    assert resp.status_code == 200
+    assert "access_token" in resp.json()

@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const rawEnvUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE = rawEnvUrl.trim().replace(/\/+$/, '');
 
 export const getStoredToken = () => localStorage.getItem('photo_token');
 export const setStoredToken = (token) => localStorage.setItem('photo_token', token);
@@ -12,7 +13,8 @@ export const setStoredUser = (user) => localStorage.setItem('photo_user', JSON.s
 export const removeStoredUser = () => localStorage.removeItem('photo_user');
 
 async function request(endpoint, options = {}) {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${cleanEndpoint}`;
   const headers = options.headers || {};
 
   const token = getStoredToken();

@@ -10,7 +10,7 @@ from app.services.cloudinary_service import upload_photo, delete_photo
 from app.middleware.auth_middleware import get_current_user, require_admin
 from app.database import get_db
 
-router = APIRouter(prefix="/api", tags=["Photos"])
+router = APIRouter(tags=["Photos"])
 
 @router.post("/events/{event_id}/photos", response_model=BatchUploadResponse)
 async def upload_photos(

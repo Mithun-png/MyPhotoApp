@@ -34,11 +34,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register Routers
-app.include_router(auth.router)
-app.include_router(events.router)
-app.include_router(photos.router)
-app.include_router(galleries.router)
+# Register Routers under /api (canonical) and root / (resilient fallback)
+for router in [auth.router, events.router, photos.router, galleries.router]:
+    app.include_router(router, prefix="/api")
+    app.include_router(router)
 
 @app.get("/")
 async def root():

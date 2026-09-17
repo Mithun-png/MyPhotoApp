@@ -11,7 +11,7 @@ from app.middleware.auth_middleware import get_current_user, require_admin
 from app.middleware.rate_limiter import pin_limiter
 from app.database import get_db
 
-router = APIRouter(prefix="/api", tags=["Galleries"])
+router = APIRouter(tags=["Galleries"])
 
 @router.post("/events/{event_id}/gallery", response_model=GalleryPublishResponse)
 async def publish_or_update_gallery(

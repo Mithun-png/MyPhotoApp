@@ -6,7 +6,7 @@ from app.services.auth_service import hash_password, verify_password, create_acc
 from app.middleware.auth_middleware import get_current_user, require_admin
 from app.database import get_db
 
-router = APIRouter(prefix="/api/auth", tags=["Auth"])
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/register", response_model=TokenResponse)
 async def register(data: UserCreate, db = Depends(get_db)):
